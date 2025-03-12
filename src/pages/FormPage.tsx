@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/card';
 import { FormData, INITIAL_FORM_STATE } from '../types';
 import { api } from '../api/api';
+import { validateField, validateForm } from '@/services/formValidator';
 
 const FormPage: React.FC = () => {
   const navigate = useNavigate();
@@ -23,15 +24,33 @@ const FormPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted');
     try {
+      console.log('====================================');
+      console.log(formData);
+      console.log('====================================');
+      const validationErrors = validateForm(formData);
+      console.log('====================================');
+      console.log(validationErrors);
+      console.log('====================================');
+      if (Object.keys(validationErrors).length > 0) {
+        setErrors(validationErrors);
+        return;
+      }
+
       const submissionData = {
         ...formData,
         submittedAt: new Date().toISOString(),
       };
+
       const response = await api.submitForm(submissionData);
       console.log('Form submitted:', response);
       navigate('/results');
-    } catch (error) {}
+    } catch (error) {
+      console.log('====================================');
+      console.log(error);
+      console.log('====================================');
+    }
   };
 
   const handleInputChange = (
@@ -41,6 +60,9 @@ const FormPage: React.FC = () => {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    const error = validateField(name, value);
+    setErrors((prev) => ({ ...prev, [name]: error }));
+
     if (errors[name as keyof FormData]) {
       console.log('Errors occured');
     }

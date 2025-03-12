@@ -3,6 +3,10 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import dotenv from 'dotenv';
+import multer from 'multer';
+import csv from 'csv-parser';
+import fs from 'fs';
+import path from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -84,6 +88,142 @@ app.post('/api/submit', (req, res) => {
 app.get('/api/submissions', (req, res) => {
   res.json(submissions);
 });
+
+/**
+ * File uploads
+ */
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = './uploads';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['text/csv', 'text/plain'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(
+      new Error('Invalid file type. Only csv and text files are allowed'),
+      false
+    );
+  }
+};
+
+const upload = multer({ storage, fileFilter });
+
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const filePath = req.file.path;
+    const fileType = path.extname(req.file.originalname).toLowerCase();
+
+    if (fileType === '.csv') {
+      processCSV(filePath, req.file.filename, res);
+    } else if (fileType === '.txt') {
+      processTXT(filePath, req.file.filename, res);
+    } else {
+      return res.status(400).json({ message: 'Unsupported file type' });
+    }
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: 'Error processing file', error: error.message });
+  }
+});
+
+// Process CSV filetype
+const processCSV = (filePath, filename, res) => {
+  let extractedData = [];
+  fs.createReadStream(filePath)
+    .pipe(csv())
+    .on('data', (row) => {
+      extractedData.push(row);
+      console.log('====================================');
+      console.log(row);
+      console.log('====================================');
+      submissions.push(row);
+    })
+    .on('end', () => {
+      res.json({
+        message: 'csv processed successfully',
+        filename,
+        data: extractedData,
+      });
+    })
+    .on('error', (error) => {
+      res
+        .status(500)
+        .json({ message: 'Error processing csv file', error: error.message });
+    });
+};
+
+// Process TXT filetype
+const processTXT = (filePath, filename, res) => {
+  fs.readFile(filePath, 'utf8', (err, data) => {
+    if (err) {
+      return res
+        .status(500)
+        .json({ message: 'Error processing text file', error: err.message });
+    }
+    const extractedData = data
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line)
+      .map((line) => {
+        const [
+          id,
+          firstName,
+          lastName,
+          employeeId,
+          phoneNumber,
+          salary,
+          startDate,
+          supervisorEmail,
+          costCenter,
+          projectCode,
+          privacyConsent,
+        ] = line.split(',');
+
+        return {
+          id: id.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          employeeId: employeeId.trim(),
+          phoneNumber: phoneNumber.trim(),
+          salary: Number(salary.trim()) || 0,
+          startDate: startDate.trim(),
+          supervisorEmail: supervisorEmail.trim(),
+          costCenter: costCenter.trim(),
+          projectCode: projectCode.trim(),
+          privacyConsent: privacyConsent.trim() === 'true',
+        };
+      });
+
+    console.log('====================================');
+    console.log(extractedData);
+    console.log('====================================');
+
+    submissions.push(...extractedData);
+
+    res.json({
+      message: 'Text data processed successfully',
+      filename,
+      data: extractedData,
+    });
+  });
+};
 
 app.get('*', (req, res) => {
   res.sendFile(join(__dirname, '../dist/index.html'));

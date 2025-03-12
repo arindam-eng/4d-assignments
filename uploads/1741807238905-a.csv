@@ -1,0 +1,7 @@
+id,firstName,lastName,employeeId,phoneNumber,salary,startDate,supervisorEmail,costCenter,projectCode,privacyConsent
+5,Michael,Brown,DEF-56789,1 (555) 555-1234,62000,2021-05-10,supervisor5@the4d.ca,XY-101-PQR,PRJ-2024-005,TRUE
+6,Sarah,Wilson,DEF-56788,1 (555) 555-5678,54000,2021-06-15,supervisor6@the4d.ca,GH-309-ABC,PRJ-2024-006,FALSE
+7,David,Martinez,DEF-56787,1 (555) 555-7890,59000,2021-07-20,supervisor7@the4d.ca,LM-876-XYZ,PRJ-2024-007,TRUE
+8,Emily,Clark,DEF-56786,1 (555) 555-4321,53000,2021-08-25,supervisor8@the4d.ca,OP-654-CBA,PRJ-2024-008,FALSE
+9,Daniel,White,DEF-56785,1 (555) 555-6789,61000,2021-09-30,supervisor9@the4d.ca,QR-987-XYZ,PRJ-2024-009,TRUE
+10,Olivia,Hall,DEF-56784,1 (555) 555-3456,57000,2021-10-05,supervisor10@the4d.ca,ST-321-DEF,PRJ-2024-010,TRUE

@@ -30,4 +30,21 @@ export const api = {
 
     return await response.json();
   },
+  async uploadFile(formData: any) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/upload`, {
+        method: 'POST',
+        body: formData as any,
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        console.log('File uploaded successfully:', data);
+      } else {
+        console.error('Upload failed:', data.message);
+      }
+    } catch (error) {
+      console.error(' Error uploading file:', error);
+    }
+  },
 };

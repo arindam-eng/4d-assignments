@@ -19,29 +19,32 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Loader2, Download, Import } from 'lucide-react';
 import { api } from '../api/api';
-import { FormData } from '../types';
+import { FormData as FormDataType } from '../types';
 
 const ResultsPage: React.FC = () => {
-  const [submissions, setSubmissions] = useState<FormData[]>([]);
+  const [submissions, setSubmissions] = useState<FormDataType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    const fetchSubmissions = async () => {
-      setIsLoading(true);
-      try {
-        const data = await api.getSubmissions();
-        setSubmissions(data);
-        setError(null);
-      } catch (err) {
-        console.error('ResultsPage: Error fetching documents', err);
-        setError('Failed to retrieve documents. Please try again later.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const [isUploading, setIsUploading] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
 
+  const fetchSubmissions = async () => {
+    setIsLoading(true);
+    try {
+      const data = await api.getSubmissions();
+      setSubmissions(data);
+      setError(null);
+    } catch (err) {
+      console.error('ResultsPage: Error fetching documents', err);
+      setError('Failed to retrieve documents. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchSubmissions();
   }, []);
 
@@ -51,12 +54,43 @@ const ResultsPage: React.FC = () => {
     return !search || fullName === search;
   });
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) return;
+    setFile(selectedFile);
+    handleImport(selectedFile);
+  };
+
   const handleExport = () => {
     console.log('Exporting documents:', filteredData);
   };
 
-  const handleImport = () => {
-    console.log('Importing documents');
+  const handleImport = async (selectedFile: File) => {
+    if (!selectedFile) {
+      alert('Please select a file before importing.');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      console.log('====================================');
+      console.log(selectedFile);
+      console.log('====================================');
+      formData.append('file', selectedFile);
+
+      await api.uploadFile(formData);
+
+      alert('File uploaded successfully!');
+      setFile(null);
+      fetchSubmissions();
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Failed to upload file. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   let content: JSX.Element;
@@ -119,19 +153,24 @@ const ResultsPage: React.FC = () => {
                 Export
               </Button>
 
-              <Button
-                variant="outline"
-                className="gap-2"
-                onClick={handleImport}
-                aria-label="Import documents"
-              >
-                <Import
-                  aria-hidden="true"
-                  focusable="false"
-                  className="h-4 w-4"
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  id="file-input"
                 />
-                Import
-              </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  aria-label="Import"
+                  onClick={() => document.getElementById('file-input')?.click()}
+                  disabled={isUploading}
+                >
+                  <Import aria-hidden="true" className="h-4 w-4" />
+                  {isUploading ? 'Uploading...' : file ? file.name : 'Import'}
+                </Button>
+              </label>
             </div>
           </div>
         </CardHeader>
